@@ -256,11 +256,13 @@ namespace Nestopia
 				return false;
 			}
 
-			template<typename T,typename U>
-			static void Append(T& t,const U& u)
-			{
-				t.Append( GetPtr(u), GetLength(u) );
-			}
+			// template<typename T,typename U>
+			// static void Append(T& t,const U& u)
+			// {
+			// 	// TODO: fix
+			// 	t.Append( GetPtr(u), static_cast<uint>(GetLength(u)));
+			// 	// t.Append(GetPtr(u), static_cast<uint>(sizeof(uint)));
+			// }
 
 			template<typename T>
 			static void Append(T& t,char c)
@@ -737,7 +739,8 @@ namespace Nestopia
 			template<typename U>
 			Sub& operator = (const U& t)
 			{
-				Assign( Base::GetPtr(t), Base::GetLength(t) );
+				// TODO: fix
+				// Assign( Base::GetPtr(t), Base::GetLength(t) );
 				return *this;
 			}
 
@@ -976,8 +979,32 @@ namespace Nestopia
 				return *this;
 			}
 
-			template<typename U>
-			Stack& operator << (const U& t)
+			// template<typename U>
+			// Stack& operator << (const U& t)
+			// {
+			// 	Base::Append( *this, t );
+			// 	return *this;
+			// }
+
+			Stack& operator << (uint t)
+			{
+				Base::Append( *this, t );
+				return *this;
+			}
+
+			Stack& operator << (char t)
+			{
+				Base::Append( *this, t );
+				return *this;
+			}
+
+			Stack& operator << (uchar t)
+			{
+				Base::Append( *this, t );
+				return *this;
+			}
+
+			Stack& operator << (const char* t)
 			{
 				Base::Append( *this, t );
 				return *this;
@@ -1304,10 +1331,54 @@ namespace Nestopia
 				return *this;
 			}
 
-			template<typename U>
-			Heap& operator << (const U& t)
+			// template<typename U>
+			// Heap& operator << (const U& t)
+			// {
+			// 	// Base::Append( *this, t );
+			// 	this->Append(Base::GetPtr(t), Base::GetLength(t));
+			// 	return *this;
+			// }
+			Heap& operator << (const char * t)
 			{
-				Base::Append( *this, t );
+				this->Append(t, strlen(t));
+				return *this;
+			}
+
+			Heap& operator << (const wchar_t * t)
+			{
+				this->Append(t, wcslen(t));
+				return *this;
+			}
+
+			Heap& operator << (char c)
+			{
+				Heap::Type v = c;
+				this->Append(&v, 1);
+				return *this;
+			}
+
+			Heap& operator << (wchar_t c)
+			{
+				this->Append(&c, 1);
+				return *this;
+			}
+
+
+			Heap& operator << (uint c)
+			{
+				Base::Append( *this, c );
+				return *this;
+			}
+
+			Heap& operator << (ulong c)
+			{
+				Base::Append( *this, c );
+				return *this;
+			}
+
+			Heap& operator << (int c)
+			{
+				Base::Append( *this, c );
 				return *this;
 			}
 
@@ -1689,8 +1760,20 @@ namespace Nestopia
 				return *this;
 			}
 
-			template<typename U>
-			Path& operator << (const U& t)
+			// template<typename U>
+			// Path& operator << (const U& t)
+			// {
+			// 	Parent::operator << (t);
+			// 	return *this;
+			// }
+
+			Path& operator << (const char * t)
+			{
+				Parent::operator << (t);
+				return *this;
+			}
+
+			Path& operator << (uint t)
 			{
 				Parent::operator << (t);
 				return *this;
@@ -2275,6 +2358,51 @@ namespace Nestopia
 	typedef String::Hex<wchar_t>          HexString;
 	typedef String::Real<wchar_t>         RealString;
 	typedef String::Path<wchar_t>         Path;
+
+
+	template<typename T>
+	inline String::Heap<T>& operator << (String::Heap<T>& self, const String::Heap<T>& t)
+	{
+		self.Append( t.Ptr(), t.Length() );
+		return self;
+	}
+
+	inline String::Heap<wchar_t>& operator << (String::Heap<wchar_t>& self, const String::Heap<char>& t)
+	{
+		self.Append( t.Ptr(), t.Length() );
+		return self;
+	}
+
+	template<typename T>
+	inline String::Heap<T>& operator << (String::Heap<T>& self, const String::Hex<T>& t)
+	{
+		self.Append( t.Ptr(), t.Length() );
+		return self;
+	}
+
+
+	template<typename T, typename U, bool I>
+	inline String::Heap<T>& operator << (String::Heap<T>& self, const String::Generic<U, I>& t)
+	{
+		self.Append( t.Ptr(), t.Length() );
+		return self;
+	}
+
+
+	template<uint N>
+	inline String::Stack<N>& operator << (String::Stack<N>& self, const HexString& t)
+	{
+		self.Append( t.Ptr(), t.Length() );
+		return self;
+	}
+
+
+	template<uint N>
+	inline String::Stack<N>& operator << (String::Stack<N>& self, const GenericString& t)
+	{
+		self.Append( t.Ptr(), t.Length() );
+		return self;
+	}
 }
 
 #endif

@@ -46,9 +46,21 @@ namespace Nestopia
 			static void SetCallback(void*,void (NST_CALL*)(void*,wcstring,uint));
 			static void UnsetCallback();
 
-			template<typename T>
-			Log& operator << (const T& t)
-			{
+			// template<typename T>
+			// Log& operator << (const T& t)
+			// {
+			// 	HeapString::operator << (t);
+			// 	return *this;
+			// }
+
+			HeapString& operator << (const char* t) {
+				// call the HeapString version
+				HeapString::operator << (t);
+				return *this;
+			}
+
+			HeapString& operator << (uint t) {
+				// call the HeapString version
 				HeapString::operator << (t);
 				return *this;
 			}

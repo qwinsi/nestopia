@@ -58,8 +58,20 @@ namespace Nestopia
 				callback.Unset();
 			}
 
+			Screen& operator << (const char* t)
+			{
+				HeapString::operator << (t);
+				return *this;
+			}
+
 			template<typename T>
 			Screen& operator << (const T& t)
+			{
+				// HeapString::operator << (t);
+				return *this;
+			}
+
+			Screen& operator << (int t)
 			{
 				HeapString::operator << (t);
 				return *this;

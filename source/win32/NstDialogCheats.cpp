@@ -738,8 +738,14 @@ namespace Nestopia
 				{
 					listView[i].Text( COLUMN_VALUE ) << (showHexMainDialog ? HexString( 8, code->value ).Ptr() : (String::Stack<8>() << code->value).Ptr());
 
-					if (code->compare != Code::NO_COMPARE)
-						listView[i].Text( COLUMN_COMPARE ) << (showHexMainDialog ? HexString( 8, code->compare ).Ptr() : (String::Stack<8>() << code->compare).Ptr());
+					if (code->compare != Code::NO_COMPARE) {
+						if (showHexMainDialog) {
+							listView[i].Text(COLUMN_COMPARE) << HexString(8, code->compare).Ptr();
+						}
+						else {
+							listView[i].Text(COLUMN_COMPARE) << (String::Stack<8>() << static_cast<uint>(code->compare)).Ptr();
+						}
+					}
 				}
 			}
 		}
@@ -841,7 +847,7 @@ namespace Nestopia
 
 			listView[index].Text( COLUMN_ADDRESS     ) << HexString( 16, code.address ).Ptr();
 			listView[index].Text( COLUMN_VALUE       ) << (showHexMainDialog ? HexString(  8, code.value   ).Ptr() : (String::Stack<8>() << code.value).Ptr());
-			listView[index].Text( COLUMN_COMPARE     ) << (code.compare != Code::NO_COMPARE ? showHexMainDialog ? HexString( 8, code.compare ).Ptr() : (String::Stack<8>() << code.compare).Ptr() : L"-");
+			listView[index].Text( COLUMN_COMPARE     ) << (code.compare != Code::NO_COMPARE ? showHexMainDialog ? HexString( 8, code.compare ).Ptr() : (String::Stack<8>() << static_cast<uint>(code.compare)).Ptr() : L"-");
 			listView[index].Text( COLUMN_GAME        ) << (code.crc ? HexString( 32, code.crc ).Ptr() : L"-");
 			listView[index].Text( COLUMN_DESCRIPTION ) << (code.description.Length() ? code.description.Ptr() : L"-");
 		}

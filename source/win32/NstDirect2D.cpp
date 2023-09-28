@@ -661,7 +661,7 @@ namespace Nestopia
 								<< "\r\nDirect3D: scanline effect: " << (adapter.canDoScanlineEffect ? "supported\r\n" : "unsupported\r\n")
 								<< "Direct3D: vsync on every second refresh: " << (adapter.intervalTwo ? "supported\r\n" : "unsupported\r\n")
 								<< "Direct3D: vsync on every third refresh: " << (adapter.intervalThree ? "supported\r\n" : "unsupported\r\n")
-								<< "Direct3D: found " << modes.size() << " display modes\r\n"
+								<< "Direct3D: found " << static_cast<uint>(modes.size()) << " display modes\r\n"
 								<< "Direct3D: supported monitor frequencies: ";
 
 						Mode::Rates rates;

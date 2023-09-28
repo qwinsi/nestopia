@@ -43,3 +43,4 @@ debug/
 release/
 debugout/
 releaseout/
+lib/emucore.lib

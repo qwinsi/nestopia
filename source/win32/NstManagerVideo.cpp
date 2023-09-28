@@ -171,7 +171,7 @@ namespace Nestopia
 				{ WM_EXITSIZEMOVE,  &Video::OnExitSizeMove  }
 			};
 
-			window.Messages().Add( this, messages, hooks );
+			window.Messages().Add( this, messages, sizeof(messages) / sizeof(messages[0]), hooks, sizeof(hooks) / sizeof(hooks[0]));
 
 			static const Window::Menu::CmdHandler::Entry<Video> commands[] =
 			{

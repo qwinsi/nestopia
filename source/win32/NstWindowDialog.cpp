@@ -150,7 +150,7 @@ namespace Nestopia
 				{ WM_MOUSEACTIVATE, &Dialog::OnIdle       }
 			};
 
-			msgHandler.Hooks().Add( this, hooks );
+			msgHandler.Hooks().Add( this, hooks, sizeof(hooks) / sizeof(hooks[0]));
 		}
 
 		INT_PTR Dialog::Open(const Type type)

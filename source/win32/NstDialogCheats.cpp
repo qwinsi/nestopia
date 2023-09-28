@@ -568,7 +568,7 @@ namespace Nestopia
 				{ WM_DROPFILES,  &Section::OnDropFiles  }
 			};
 
-			d.Messages().Hooks().Add( this, hooks );
+			d.Messages().Hooks().Add( this, hooks, sizeof(hooks) / sizeof(hooks[0]));
 
 			for (uint i=0; i < NUM_COLUMNS; ++i)
 				sortColumns[i] = static_cast<Column>(i);

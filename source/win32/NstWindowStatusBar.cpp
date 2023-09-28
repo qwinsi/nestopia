@@ -67,7 +67,7 @@ namespace Nestopia
 				{ WM_DESTROY, &StatusBar::OnDestroy }
 			};
 
-			parent.Messages().Hooks().Add( this, hooks );
+			parent.Messages().Hooks().Add( this, hooks, sizeof(hooks) / sizeof(hooks[0]));
 		}
 
 		StatusBar::~StatusBar()

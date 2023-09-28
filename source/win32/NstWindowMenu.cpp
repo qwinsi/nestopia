@@ -173,7 +173,7 @@ namespace Nestopia
 			MsgHandler& router = w.Messages();
 
 			window = &w;
-			router.Add( this, messages, hooks );
+			router.Add( this, messages, sizeof(messages) / sizeof(messages[0]), hooks, sizeof(hooks) / sizeof(hooks[0]));
 
 			if (router( WM_COMMAND ))
 				cmdCallback = router[WM_COMMAND].Replace( this, &Menu::OnCommand );

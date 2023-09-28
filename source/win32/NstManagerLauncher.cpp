@@ -48,7 +48,7 @@ namespace Nestopia
 				{ WM_DISPLAYCHANGE, &Launcher::OnDisplayChange }
 			};
 
-			window.Messages().Hooks().Add( this, hooks );
+			window.Messages().Hooks().Add( this, hooks, sizeof(hooks) / sizeof(hooks[0]));
 		}
 
 		Launcher::~Launcher()

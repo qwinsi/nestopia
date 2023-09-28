@@ -173,10 +173,10 @@ namespace Nestopia
 			{
 				Router& router;
 
-				template<typename Data>
-				void Add(Data*,const HookEntry<Data>*,uint);
 
 			public:
+				template<typename Data>
+				void Add(Data*,const HookEntry<Data>*,uint count);
 
 				HookRouter(Router& ref)
 				: router(ref) {}
@@ -189,11 +189,6 @@ namespace Nestopia
 					router.AddHook( key, Callback(data,code) );
 				}
 
-				template<typename Data,typename Hooks>
-				void Add(Data* data,const Hooks& hooks)
-				{
-					Add( data, hooks, sizeof(array(hooks)) );
-				}
 
 				void Remove(const void* data)
 				{
@@ -237,10 +232,10 @@ namespace Nestopia
 			}
 
 			template<typename Data,typename Array,typename HookArray>
-			void Add(Data* data,const Array& arr,const HookArray& hookArray)
+			void Add(Data* data,const Array& arr, uint lengthArr, const HookArray& hookArray, uint lengthHookArray)
 			{
-				Add( data, arr, sizeof(array(arr)) );
-				Hooks().Add( data, hookArray );
+				Add( data, arr, lengthArr);
+				Hooks().Add( data, hookArray, lengthHookArray);
 			}
 
 			template<typename Data,typename Code>

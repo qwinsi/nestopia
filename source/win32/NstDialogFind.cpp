@@ -42,14 +42,21 @@ namespace Nestopia
 						{
 							Generic& window = *reinterpret_cast<Generic*>(reinterpret_cast<FINDREPLACE*>(lParam)->lCustData);
 							window = hWnd;
-							::SetWindowLongPtr( hWnd, GWL_USERDATA, reinterpret_cast<LPARAM>(&window) );
+#ifdef _WIN64
+							::SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LPARAM>(&window));
+#else
+							::SetWindowLongPtr(hWnd, GWL_USERDATA, reinterpret_cast<LPARAM>(&window));
+#endif
 							Dialog::RegisterModeless( hWnd );
 							return true;
 						}
 
 						case WM_DESTROY:
-
-							*reinterpret_cast<Generic*>(::GetWindowLongPtr( hWnd, GWL_USERDATA )) = NULL;
+#ifdef _WIN64
+							*reinterpret_cast<Generic*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA)) = NULL;
+#else
+							*reinterpret_cast<Generic*>(::GetWindowLongPtr(hWnd, GWL_USERDATA)) = NULL;
+#endif
 							Dialog::UnregisterModeless( hWnd );
 							return false;
 					}

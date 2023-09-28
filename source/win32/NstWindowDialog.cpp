@@ -191,7 +191,7 @@ namespace Nestopia
 					Application::Instance::GetLanguage().GetResourceHandle(),
 					MAKEINTRESOURCE(id),
 					Application::Instance::GetActiveWindow(),
-					DlgProc,
+					reinterpret_cast<DLGPROC>(DlgProc),
 					reinterpret_cast<LPARAM>(this)
 				);
 			}
@@ -206,7 +206,7 @@ namespace Nestopia
 				Application::Instance::GetLanguage().GetResourceHandle(),
 				MAKEINTRESOURCE(id),
 				noTaskbarWindow ? noTaskbarWindow->GetHandle() : Application::Instance::GetActiveWindow(),
-				DlgProc,
+				reinterpret_cast<DLGPROC>(DlgProc),
 				reinterpret_cast<LPARAM>(this)
 			);
 

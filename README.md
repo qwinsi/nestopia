@@ -54,7 +54,8 @@ make [install]
 
 ## Win32 Build
 To build the win32 solution with Visual Studio 2010:
-1. Ensure you have the DirectX 9 SDK
+1. Ensure you have the DirectX 9 SDK - (June 2010) https://www.microsoft.com/en-US/download/details.aspx?id=6812
 2. Manually zip NstDatabase.xml to the destination source/core/database/NstDatabase.zip
-3. Open projects/nestopia.sln
-4. Build in release mode
+3. Place 7zxa.dll, kailleraclient.dll, and unrar.dll into dll/. Place releasenotes.txt into doc/. These files are required by the build process.
+4. Open projects/nestopia.sln
+5. Build in release mode

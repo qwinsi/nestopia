@@ -1226,7 +1226,7 @@ namespace Nestopia
 			}
 		};
 
-		INT_PTR Input::ScanKeys()
+		int Input::ScanKeys()
 		{
 			switch (KeyPressWindow(*this).Poll())
 			{

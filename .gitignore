@@ -37,3 +37,9 @@ source/core/vssystem/.deps/
 source/core/vssystem/.dirstamp
 source/fltkui/.deps/
 source/fltkui/.dirstamp
+
+.vs/
+debug/
+release/
+debugout/
+releaseout/

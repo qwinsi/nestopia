@@ -740,7 +740,7 @@ namespace Nestopia
 			Sub& operator = (const U& t)
 			{
 				// TODO: fix
-				// Assign( Base::GetPtr(t), Base::GetLength(t) );
+				Assign( Base::GetPtr(t), Base::GetLength(t) );
 				return *this;
 			}
 

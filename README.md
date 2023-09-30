@@ -1,3 +1,11 @@
+## Nestopia
+
+This is a fork of https://github.com/0ldsk00l/nestopia . The purpose of this fork is to provide x64 build for Windows.
+
+The original content of README.md is below. I modified only the "Win32 Build" section.
+
+------
+
 ## About
 This project is a fork of the original Nestopia source code, plus the 
 Linux port. The purpose of the project is to make sure people who want

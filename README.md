@@ -2,6 +2,8 @@
 
 This is a fork of https://github.com/0ldsk00l/nestopia . The purpose of this fork is to provide x64 build for Windows.
 
+You can download the latest build from [the Release page](https://github.com/qwinsi/nestopia/releases).
+
 The original content of README.md is below. I modified only the "Win32 Build" section.
 
 ------

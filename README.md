@@ -53,7 +53,7 @@ make [install]
 ```
 
 ## Win32 Build
-To build the win32 solution with Visual Studio 2010:
+To build the win32 solution with Visual Studio 2022:
 1. Ensure you have the DirectX 9 SDK - (June 2010) https://www.microsoft.com/en-US/download/details.aspx?id=6812
 2. Manually zip NstDatabase.xml to the destination source/core/database/NstDatabase.zip
 3. Place 7zxa.dll, kailleraclient.dll, and unrar.dll into dll/. Place releasenotes.txt into doc/. These files are required by the build process.

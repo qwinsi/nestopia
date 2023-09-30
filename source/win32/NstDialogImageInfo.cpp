@@ -258,6 +258,19 @@ namespace Nestopia
 					for (Nes::Fds::DiskData::Files::const_iterator it(data.files.begin()), end(data.files.end()); it != end; ++it)
 						size += it->data.size();
 
+#ifdef _WIN64
+                    // TODO: I commented ths out because it cause compiler error in 64-bit build.
+					// At present, it seems to work fine without the commented code.
+					// But this should be fixed properly.
+					types[3 + i / 2] << (i % 2 ? ", B: " : "A: ")
+						<< (size / 1024)
+						<< "k ";
+                    	// << Resource::String( IDS_TEXT_IN_FILES ).Invoke( data.files.size() );
+
+					if (!data.raw.empty())
+						types[3 + i / 2] << ", "; // << Resource::String(IDS_TEXT_TRAILING_DATA).Invoke(data.raw.size());
+#else
+
 					types[3+i/2] << (i % 2 ? ", B: " : "A: ")
                                  << (size / 1024)
                                  << "k "
@@ -265,6 +278,7 @@ namespace Nestopia
 
 					if (!data.raw.empty())
 						types[3+i/2] << ", " << Resource::String( IDS_TEXT_TRAILING_DATA ).Invoke( data.raw.size() );
+#endif
 				}
 
 				Table::Output( text, &types.front(), types.size() );

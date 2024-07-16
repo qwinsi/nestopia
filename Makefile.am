@@ -13,12 +13,16 @@ nestopia_CPPFLAGS = \
 	-DNST_PRAGMA_ONCE \
 	$(ZLIB_CFLAGS) \
 	$(LIBARCHIVE_CFLAGS) \
+	$(SAMPLERATE_CFLAGS) \
 	$(SDL2_CFLAGS) \
+	$(LIBEPOXY_CFLAGS) \
 	$(FLTK_CFLAGS)
 nestopia_LDADD = \
 	$(ZLIB_LIBS) \
 	$(LIBARCHIVE_LIBS) \
+	$(SAMPLERATE_LIBS) \
 	$(SDL2_LIBS) \
+	$(LIBEPOXY_LIBS) \
 	$(FLTK_LIBS)
 
 ################
@@ -27,6 +31,16 @@ nestopia_LDADD = \
 # program-specific files
 databasedir = $(datadir)/nestopia
 dist_database_DATA = NstDatabase.xml
+
+palettedir = $(datadir)/nestopia/palettes
+dist_palette_DATA = palettes/SONY_CXA2025AS_US.pal palettes/Royaltea.pal \
+	palettes/Nobilitea.pal palettes/Digital_Prime_FBX.pal \
+	palettes/Magnum_FBX.pal palettes/PVM_Style_D93_FBX.pal \
+	palettes/Smooth_V2_FBX.pal
+
+shaderdir = $(datadir)/nestopia/shaders
+dist_shader_DATA = shaders/default.vs shaders/default.fs shaders/crtea.fs \
+	shaders/sharp-bilinear.fs shaders/mmpx.fs shaders/omniscale.fs
 
 # freedesktop.org-specific files
 desktopdir = $(datarootdir)/applications
@@ -670,6 +684,10 @@ nestopia_SOURCES = \
 	source/core/board/NstBoardUnl158b.hpp \
 	source/core/board/NstBoardUnlRetX7Gbl.cpp \
 	source/core/board/NstBoardUnlRetX7Gbl.hpp \
+	source/core/board/NstBoardUnlFam250Schi24.cpp \
+	source/core/board/NstBoardUnlFam250Schi24.hpp \
+	source/core/board/NstBoardBmc120in1.cpp \
+	source/core/board/NstBoardBmc120in1.hpp \
 	source/core/NstPins.hpp \
 	source/core/NstNsf.hpp \
 	source/core/NstTrackerRewinder.hpp \
@@ -699,39 +717,40 @@ nestopia_SOURCES = \
 	source/nes_ntsc/demo_impl.h
 
 nestopia_SOURCES += \
-	source/fltkui/nstcommon.cpp \
-	source/fltkui/nstcommon.h \
-	source/fltkui/cheats.cpp \
-	source/fltkui/cheats.h \
-	source/fltkui/homebrew.cpp \
-	source/fltkui/homebrew.h \
-	source/fltkui/cli.cpp \
-	source/fltkui/cli.h \
-	source/fltkui/config.cpp \
-	source/fltkui/config.h \
-	source/fltkui/video.cpp \
-	source/fltkui/video.h \
-	source/fltkui/input.cpp \
-	source/fltkui/input.h \
-	source/fltkui/samples.cpp \
-	source/fltkui/samples.h \
-	source/fltkui/font.h \
-	source/fltkui/ini.cpp \
+	source/fltkui/audiomanager.cpp \
+	source/fltkui/audiomanager.h \
+	source/fltkui/chtmanager.cpp \
+	source/fltkui/chtmanager.h \
 	source/fltkui/ini.h \
-	source/fltkui/png.cpp \
-	source/fltkui/png.h \
-	source/fltkui/audio.cpp \
-	source/fltkui/audio.h
+	source/fltkui/inputmanager.cpp \
+	source/fltkui/inputmanager.h \
+	source/fltkui/font.h \
+	source/fltkui/lodepng.cpp \
+	source/fltkui/lodepng.h \
+	source/fltkui/logdriver.cpp \
+	source/fltkui/logdriver.h \
+	source/fltkui/jgmanager.cpp \
+	source/fltkui/jgmanager.h \
+	source/fltkui/setmanager.cpp \
+	source/fltkui/setmanager.h \
+	source/fltkui/uiadapter.cpp \
+	source/fltkui/uiadapter.h \
+	source/fltkui/videomanager.cpp \
+	source/fltkui/videomanager.h \
+	source/fltkui/version.h \
+	source/fltkui/jg.cpp \
+	source/fltkui/jg/jg.h \
+	source/fltkui/jg/jg_nes.h
 
 nestopia_SOURCES += \
-	source/fltkui/fltkui_config.h \
 	source/fltkui/fltkui_archive.h \
 	source/fltkui/fltkui_archive.cpp \
 	source/fltkui/fltkui_cheats.h \
 	source/fltkui/fltkui_cheats.cpp \
 	source/fltkui/fltkui.cpp \
 	source/fltkui/fltkui.h \
-	source/fltkui/fltkui_config.cpp
+	source/fltkui/fltkui_settings.cpp \
+	source/fltkui/fltkui_settings.h
 
 # install full HTML suite
 if ENABLE_FULL_HTML

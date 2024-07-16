@@ -2,7 +2,7 @@ dnl Initialise Autoconf
 AC_PREREQ([2.69])
 AC_INIT(
 	[nestopia],
-	[1.52.0])
+	[1.52.1])
 AC_CONFIG_SRCDIR([source])
 AC_LANG([C++])
 
@@ -28,7 +28,6 @@ AS_IF([test "x${enable_debug}" = "xno"],
 		AS_CASE([${host_os}],
 			[darwin*],
 			[ldflags_test="-Wl,-dead_strip_dylibs"],
-			[linux*],
 			[ldflags_test="-Wl,-O1 -Wl,--as-needed"]
 		)
 	]
@@ -42,7 +41,7 @@ dnl =======================================
 AX_COMPILER_VENDOR
 AX_COMPILER_VERSION
 AC_PROG_SED
-AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 
 
 
@@ -73,8 +72,14 @@ PKG_CHECK_MODULES([ZLIB], [zlib])
 dnl libarchive
 PKG_CHECK_MODULES([LIBARCHIVE], [libarchive])
 
+dnl SAMPLERATE
+PKG_CHECK_MODULES([SAMPLERATE], [samplerate])
+
 dnl SDL2
 PKG_CHECK_MODULES([SDL2], [sdl2])
+
+dnl LibEpoxy
+PKG_CHECK_MODULES([LIBEPOXY], [epoxy])
 
 AC_CHECK_PROG(FLTKCONFIG,fltk-config,[fltk-config],[no])
 test "$FLTKCONFIG" == "no" && AC_MSG_ERROR([Cannot find the fltk-config executable. Is FLTK installed?])
@@ -83,9 +88,6 @@ AC_SUBST(FLTK_CFLAGS,"$(fltk-config --use-gl --use-images --cxxflags)")
 AS_CASE([${host_os}],
 	[darwin*],
 	[AC_SUBST(FLTK_LIBS,"$(fltk-config --use-gl --use-images --ldflags)")],
-	[freebsd*],
-	[AC_SUBST(FLTK_LIBS,"-lGL $(fltk-config --use-gl --use-images --ldflags)")],
-	[linux*],
 	[AC_SUBST(FLTK_LIBS,"-lGL $(fltk-config --use-gl --use-images --ldflags)")]
 )
 

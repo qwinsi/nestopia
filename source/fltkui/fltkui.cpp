@@ -35,6 +35,9 @@
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Menu_Bar.H>
+#ifdef __APPLE__
+#include <FL/Fl_Sys_Menu_Bar.H>
+#endif
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_Gl_Window.H>
@@ -64,9 +67,15 @@ namespace {
 int paused{0};
 int speed{1};
 int video_fullscreen{0};
+int refreshrate{60};
+int screennum{0};
 
 NstWindow *nstwin{nullptr};
+#ifdef __APPLE__
+Fl_Sys_Menu_Bar *menubar{nullptr};
+#else
 Fl_Menu_Bar *menubar{nullptr};
+#endif
 NstGlArea *glarea{nullptr};
 NstChtWindow *chtwin{nullptr};
 NstSettingsWindow *setwin{nullptr};
@@ -101,7 +110,9 @@ Fl_Menu_Item menutable[] = {
             {0},
         {"Open Palette...", 0, FltkUi::palette_open, 0, FL_MENU_DIVIDER},
         {"Screenshot...", 0, FltkUi::screenshot_save, 0, FL_MENU_DIVIDER|FL_MENU_INACTIVE},
+        #ifndef __APPLE__
         {"&Quit", FL_ALT + 'q', FltkUi::quit, 0, 0},
+        #endif
         {0}, // End File
     {"&Emulator", FL_ALT + 'e', 0, 0, FL_SUBMENU},
         {"Pause", 0, FltkUi::pause, 0, FL_MENU_DIVIDER|FL_MENU_INACTIVE},
@@ -113,9 +124,11 @@ Fl_Menu_Item menutable[] = {
         {"Cheats...", 0, FltkUi::chtwin_open, 0, FL_MENU_DIVIDER|FL_MENU_INACTIVE},
         {"Settings...", 0, FltkUi::setwin_open, 0, 0},
         {0}, // End Emulator
+    #ifndef __APPLE__
     {"&Help", FL_ALT + 'h', 0, 0, FL_SUBMENU},
         {"About", 0, FltkUi::about, 0, 0},
         {0}, // End Help
+    #endif
     {0} // End Menu
 };
 
@@ -130,9 +143,11 @@ Fl_Menu_Item *get_menuitem(std::string label) {
     return nullptr;
 }
 
-int get_refreshrate(void) {
+void update_refreshrate(void) {
     // Get the screen refresh rate using an SDL window
-    int refresh = 60;
+    #ifdef __APPLE__
+    return; // macOS doesn't like the SDL window or refresh rates other than 60
+    #endif
     SDL_Window *sdlwin;
     sdlwin = SDL_CreateWindow(
         "refreshrate",
@@ -140,10 +155,9 @@ int get_refreshrate(void) {
         1, 1, SDL_WINDOW_HIDDEN
     );
     SDL_DisplayMode dm;
-    SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(sdlwin), &dm);
-    refresh = dm.refresh_rate;
+    SDL_GetCurrentDisplayMode(screennum, &dm);
+    refreshrate = dm.refresh_rate;
     SDL_DestroyWindow(sdlwin);
-    return refresh;
 }
 
 }
@@ -372,6 +386,9 @@ void FltkUi::pause(Fl_Widget *w, void *data) {
     }
 
     m->label(paused ? "Play" : "Pause");
+    #ifdef __APPLE__
+    menubar->update();
+    #endif
 }
 
 void FltkUi::reset(Fl_Widget *w, void *data) {
@@ -379,20 +396,24 @@ void FltkUi::reset(Fl_Widget *w, void *data) {
 }
 
 void NstWindow::resize(int x, int y, int w, int h) {
-    Fl_Window::resize(x, y, w, h);
-    menubar->resize(0, 0, w, UI_MBARHEIGHT);
+    Fl_Double_Window::resize(x, y, w, h);
+
+    int nscreennum = Fl::screen_num(x, y, w, h);
+    if (nscreennum != screennum) { // Window moved to a different screen
+        screennum = nscreennum;
+        update_refreshrate();
+    }
+
+    videomgr->set_dpiscale(glarea->pixels_per_unit());
 
     if (video_fullscreen) {
         glarea->resize(0, 0, w, h);
+        videomgr->resize(w, h);
     }
     else {
         glarea->resize(0, UI_MBARHEIGHT, w, h - UI_MBARHEIGHT);
+        videomgr->resize(w, h - UI_MBARHEIGHT);
     }
-}
-
-void NstGlArea::resize(int x, int y, int w, int h) {
-    Fl_Window::resize(x, y, w, h);
-    videomgr->resize(w, h);
 }
 
 void FltkUi::rehash() {
@@ -413,17 +434,17 @@ void FltkUi::fullscreen(Fl_Widget *w, void *data) {
         nstwin->fullscreen();
     }
     else {
-        nstwin->fullscreen_off();
         menubar->show();
+        nstwin->fullscreen_off();
     }
 }
 
 void FltkUi::fds_next(Fl_Widget *w, void *data) {
-    jg_media_select();
+    jgm->media_select();
 }
 
 void FltkUi::fds_insert(Fl_Widget *w, void *data) {
-    jg_media_insert();
+    jgm->media_insert();
 }
 
 void FltkUi::about_close(Fl_Widget *w, void *data) {
@@ -443,7 +464,9 @@ void FltkUi::about(Fl_Widget *w, void *data) {
     Fl_Box text2(0, 208, 460, UI_SPACING, "Cycle-Accurate Nintendo Entertainment System Emulator");
 
     Fl_Box text3(0, 256, 460, UI_SPACING,
-                 "FLTK Frontend\n(c) 2012-2024, R. Danbrook");
+                 "FLTK Frontend\n(c) 2012-2024, R. Danbrook\n\n"
+                 "Portions derived from The Jolly Good Reference Frontend\n"
+                 "(c) 2020-2024, Rupert Carmichael\n");
     text3.labelsize(10);
 
     Fl_Box text4(0, 320, 460, UI_SPACING,
@@ -565,13 +588,17 @@ int NstGlArea::handle(int e) {
 }
 
 void FltkUi::enable_menu() {
-    for (int i = 0; i < menutable[0].size(); ++i) {
-        menutable[i].activate();
+    Fl_Menu_Item *mtable = (Fl_Menu_Item*)menubar->menu();
+    for (int i = 0; i < mtable[0].size(); ++i) {
+        mtable[i].activate();
     }
+    #ifdef __APPLE__
+    menubar->update();
+    #endif
 }
 
-void FltkUi::show_msgbox(bool show) {
-    setwin->show_msgbox(show);
+void FltkUi::show_inputmsg(int show) {
+    setwin->show_inputmsg(show);
 }
 
 void FltkUi::nstwin_open(const char *name) {
@@ -592,22 +619,40 @@ void FltkUi::nstwin_open(const char *name) {
     nstwin = new NstWindow(rw, rh + UI_MBARHEIGHT, name);
     nstwin->color(FL_BLACK);
     nstwin->xclass("nestopia");
-    nstwin->resizable(nstwin);
 
-    nstwin->begin();
-
-    // Menu Bar
+    #ifdef __APPLE__
+    // Apple style menu bar (top of screen)
+    menubar = new Fl_Sys_Menu_Bar(0, 0, nstwin->w(), UI_MBARHEIGHT);
+    // Set the "About" callback
+    Fl_Sys_Menu_Bar::about(about, nullptr);
+    #else
+    // Normal menu bar and window icon
     menubar = new Fl_Menu_Bar(0, 0, nstwin->w(), UI_MBARHEIGHT);
+
+    // Set up the window icon
+    std::string iconpath{"icons/96/nestopia.png"};
+    if (!std::filesystem::exists(std::filesystem::path{iconpath})) {
+        iconpath = std::string(NST_DATAROOTDIR) + "/icons/hicolor/96x96/apps/nestopia.png";
+    }
+
+    Fl_PNG_Image nsticon(iconpath.c_str());
+    nstwin->default_icon(&nsticon);
+    #endif
+
     menubar->box(FL_FLAT_BOX);
     menubar->menu(menutable);
     menubar->selection_color(NstGreen);
 
     glarea = new NstGlArea(0, UI_MBARHEIGHT, nstwin->w(), nstwin->h() - UI_MBARHEIGHT);
+    nstwin->resizable(glarea);
     glarea->color(FL_BLACK);
     #ifdef __APPLE__
+    Fl::use_high_res_GL(1);
     glarea->mode(FL_RGB | FL_RGB8 | FL_INDEX | FL_DOUBLE | FL_ACCUM |
-                 FL_ALPHA | FL_DEPTH | FL_STENCIL | FL_OPENGL3);
+                 FL_ALPHA | FL_DEPTH | FL_STENCIL |
+                 (setmgr->get_setting("v_renderer")->val ? 0 : FL_OPENGL3));
     #endif
+    glarea->end();
 
     nstwin->end();
 }
@@ -641,12 +686,10 @@ int main(int argc, char *argv[]) {
     setmgr = new SettingManager();
 
     // Initialize SDL Audio and Joystick
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
         LogDriver::log(LogLevel::Error, "Failed to initialize SDL: " + std::string(SDL_GetError()));
         return 1;
     }
-
-    int refreshrate = get_refreshrate();
 
     jgm = new JGManager();
 
@@ -676,6 +719,7 @@ int main(int argc, char *argv[]) {
     }
 
     FltkUi::nstwin_open(argv[0]);
+    screennum = Fl::screen_num(nstwin->x_root(), nstwin->y_root());
 
     if (jgm->is_loaded()) {
         nstwin->label(jgm->get_gamename().c_str());
@@ -691,6 +735,8 @@ int main(int argc, char *argv[]) {
     glarea->make_current();
     glarea->show();
     videomgr->renderer_init();
+    videomgr->set_dpiscale(glarea->pixels_per_unit());
+    videomgr->resize(glarea->w(), glarea->h());
 
     Fl::check();
 
@@ -701,6 +747,8 @@ int main(int argc, char *argv[]) {
 
     int frames = 0;
     int framefrags = 0;
+    int fps = jgm->get_frametime();
+    update_refreshrate();
 
     while (true) {
         Fl::check();
@@ -713,7 +761,7 @@ int main(int argc, char *argv[]) {
             inputmgr->event(event);
         }
 
-        int fps = jgm->get_frametime();
+        fps = jgm->get_frametime();
         frames = (fps / refreshrate);
         framefrags += fps % refreshrate;
 

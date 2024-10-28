@@ -2,6 +2,7 @@
  * Nestopia UE
  *
  * Copyright (C) 2012-2024 R. Danbrook
+ * Copyright (C) 2020-2024 Rupert Carmichael
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,6 +79,10 @@ VideoRendererLegacy::VideoRendererLegacy(SettingManager& setmgr)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+
+    // Ignore the empty alpha channel
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
 }
 
 VideoRendererLegacy::~VideoRendererLegacy() {
@@ -145,6 +150,10 @@ VideoRendererModern::VideoRendererModern(SettingManager& setmgr, const std::stri
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
         tex[1], 0);
+
+    // Ignore the empty alpha channel
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
 
     shader_setup();
 
@@ -759,6 +768,7 @@ VideoManager::~VideoManager() {
 void VideoManager::renderer_init() {
     if (setmgr.get_setting("v_renderer")->val) {
         renderer = new VideoRendererLegacy(setmgr);
+        LogDriver::log(LogLevel::Debug, "Renderer: Legacy OpenGL");
     }
     else {
         const std::string ver_core{"#version 140\n"};
@@ -836,6 +846,10 @@ void VideoManager::set_dimensions() {
     dimensions.dpiscale = 1.0;
 }
 
+void VideoManager::set_dpiscale(float dpiscale) {
+    dimensions.dpiscale = dpiscale;
+}
+
 // FIXME maybe use std::tuple here
 void VideoManager::get_scaled_coords(int x, int y, int *xcoord, int *ycoord) {
     float xscale = dimensions.rw / (vidinfo->aspect * vidinfo->h) / dimensions.dpiscale;
@@ -870,8 +884,8 @@ void VideoManager::resize(int w, int h) {
     if (!renderer) {
         return;
     }
-    dimensions.ww = w;
-    dimensions.wh = h;
+    dimensions.ww = w * dimensions.dpiscale;
+    dimensions.wh = h * dimensions.dpiscale;
     rehash();
 }
 

@@ -127,10 +127,31 @@ std::unordered_map<int, std::string> keycodes = { //FL_Button ??
     { FL_Stop, "Stop" },
     { FL_Refresh, "Refresh" },
     { FL_Sleep, "Sleep" },
-    { FL_Favorites, "Favorites" }
+    { FL_Favorites, "Favorites" },
+    { 1001, "Mouse 1" },
+    { 1002, "Mouse 2" },
+    { 1003, "Mouse 3" },
+    { 1004, "Mouse 4" },
+    { 1005, "Mouse 5" },
+    { 1006, "Mouse 6" },
+    { 1007, "Mouse 7" },
+    { 1008, "Mouse 8" },
+    { 1009, "Mouse 9" },
+    { 1010, "Mouse 10" },
+    { 1011, "Mouse 11" },
+    { 1012, "Mouse 12" },
+    { 1013, "Mouse 13" },
+    { 1014, "Mouse 14" },
+    { 1015, "Mouse 15" },
+    { 1016, "Mouse 16" },
+    { 1017, "Mouse 17" },
+    { 1018, "Mouse 18" },
+    { 1019, "Mouse 19" },
+    { 1020, "Mouse 20" }
 };
 
-NstSettingsWindow *win = nullptr;
+NstSettingsWindow *win{nullptr};
+Fl_Box *msgbox{nullptr};
 
 }
 
@@ -165,6 +186,27 @@ NstSettingsWindow::NstSettingsWindow(int w, int h, const char* t, JGManager& j, 
     btn_ok->shortcut(FL_ALT + 'o');
 
     this->end();
+}
+
+void NstSettingsWindow::show_inputmsg(int show) {
+    if (!msgbox) {
+        return;
+    }
+
+    switch (show) {
+        case 0:
+            msgbox->label("");
+            break;
+        case 1:
+            msgbox->label("Press the desired key, ESC to clear");
+            break;
+        case 2:
+            msgbox->label("Input definition already used");
+            break;
+    }
+
+    msgbox->show();
+    itable->redraw();
 }
 
 void NstSettingsWindow::set_choice_value(std::string tab, std::string label, int val) {
@@ -325,10 +367,13 @@ void NstSettingsWindow::cb_itable(Fl_Widget *w, void *data) {
     if (Fl::event_clicks() > 0) {
         Fl::event_clicks(0); // Reset double-click counter
         itable->take_focus();
-        show_msgbox(true);
+        show_inputmsg(1);
         inputmgr.set_inputcfg(input_info[t->get_devicenum()].name,
                               input_info[t->get_devicenum()].defs[t->callback_row()],
                               t->callback_row());
+    }
+    else {
+        show_inputmsg(0);
     }
 }
 
@@ -346,7 +391,6 @@ int InputTable::handle(int e) {
                 else {
                     inputmgr.set_inputdef(Fl::event_key());
                 }
-                win->show_msgbox(false);
                 inputmgr.set_cfg_running(false);
                 redraw();
                 return 1;
@@ -356,7 +400,6 @@ int InputTable::handle(int e) {
         case FL_PUSH: {
             if (inputmgr.get_cfg_running()) {
                 inputmgr.set_inputdef(Fl::event_button() + 1000);
-                win->show_msgbox(false);
                 inputmgr.set_cfg_running(false);
                 redraw();
                 return 1;
@@ -403,7 +446,6 @@ void NstSettingsWindow::populate_input() {
     itable->rows(input_info[0].numaxes + input_info[0].numbuttons);
 
     msgbox = new Fl_Box(200, 450, 240, UI_ELEMHEIGHT);
-    msgbox->label("Press the desired key, ESC to clear");
     msgbox->hide();
 }
 
@@ -430,7 +472,7 @@ void InputTable::draw_cell(TableContext context, int r, int c, int x, int y, int
                 if (keycodes.count(keynum)) {
                     text = keycodes[keynum].c_str();
                 }
-                else if (keynum >= 33 && keynum <= 126) {
+                else if ((keynum >= 33 && keynum <= 126) || (keynum >= 1001 && keynum <= 1020)) {
                     key = std::string(1, keynum);
                     text = key.c_str();
                 }

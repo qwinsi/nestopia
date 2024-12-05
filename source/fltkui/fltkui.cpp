@@ -67,8 +67,14 @@ namespace {
 int paused{0};
 int speed{1};
 int video_fullscreen{0};
+int syncmode{0};
 int refreshrate{60};
 int screennum{0};
+
+int frames{0};
+int framefrags{0};
+
+bool fdsgame{false};
 
 NstWindow *nstwin{nullptr};
 #ifdef __APPLE__
@@ -145,8 +151,12 @@ Fl_Menu_Item *get_menuitem(std::string label) {
 
 void update_refreshrate(void) {
     // Get the screen refresh rate using an SDL window
+    if (syncmode) { // Don't use this in "Timer" sync mode
+        return;
+    }
     #ifdef __APPLE__
-    return; // macOS doesn't like the SDL window or refresh rates other than 60
+    refreshrate = 120; // Dirty hack for modern macOS
+    return;
     #endif
     SDL_Window *sdlwin;
     sdlwin = SDL_CreateWindow(
@@ -158,6 +168,46 @@ void update_refreshrate(void) {
     SDL_GetCurrentDisplayMode(screennum, &dm);
     refreshrate = dm.refresh_rate;
     SDL_DestroyWindow(sdlwin);
+}
+
+void exec_emu_vsync(void*) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        inputmgr->event(event);
+    }
+
+    int fps{jgm->get_frametime()};
+    frames = (fps / refreshrate);
+    framefrags += fps % refreshrate;
+
+    if (framefrags >= refreshrate) {
+        frames++;
+        framefrags -= refreshrate;
+    }
+
+    if (!paused) {
+        for (int i = 0; i < frames * speed; i++) {
+            jgm->exec_frame();
+        }
+    }
+
+    glarea->redraw();
+}
+
+void exec_emu_timer(void*) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        inputmgr->event(event);
+    }
+
+    if (!paused) {
+        for (int i = 0; i < speed; i++) {
+            jgm->exec_frame();
+        }
+    }
+
+    Fl::repeat_timeout(1.0 / jgm->get_frametime(), exec_emu_timer);
+    glarea->redraw();
 }
 
 }
@@ -191,6 +241,7 @@ void FltkUi::load_file(const char *filename) {
 
             game.clear();
             fltkui_archive_load_file(filename, arcname, game);
+            fileext = std::filesystem::path(arcname).extension().string();
             jgm->load_game(arcname.c_str(), game);
         }
         else {
@@ -211,6 +262,10 @@ void FltkUi::load_file(const char *filename) {
 
         jgm->load_game(filename, game);
     }
+
+    std::transform(fileext.begin(), fileext.end(), fileext.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    fdsgame = fileext == ".fds";
 }
 
 void FltkUi::rom_open(Fl_Widget *w, void *data) {
@@ -218,7 +273,9 @@ void FltkUi::rom_open(Fl_Widget *w, void *data) {
     Fl_Native_File_Chooser fc;
     fc.title("Select a ROM");
     fc.type(Fl_Native_File_Chooser::BROWSE_FILE);
-    fc.filter("NES Games\t*.{nes,unf,fds,bin,zip,7z,gz,bz2,xz,zst}");
+    fc.filter("NES Games\t*.{nes,unf,fds,bin,zip,7z,gz,bz2,xz,xml,zst}");
+
+    run_emulation(false);
 
     // Show file chooser
     switch (fc.show()) {
@@ -243,6 +300,8 @@ void FltkUi::rom_open(Fl_Widget *w, void *data) {
             }
             break;
     }
+
+    run_emulation();
 }
 
 void FltkUi::screenshot(std::string filename) {
@@ -264,6 +323,8 @@ void FltkUi::screenshot_save(Fl_Widget *w, void *data) {
         return;
     }
 
+    run_emulation(false);
+
     Fl_Native_File_Chooser fc;
     fc.title("Save Screenshot");
     fc.type(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
@@ -276,6 +337,7 @@ void FltkUi::screenshot_save(Fl_Widget *w, void *data) {
     }
 
     screenshot(fc.filename());
+    run_emulation();
 }
 
 void FltkUi::state_load(Fl_Widget *w, void *userdata) {
@@ -283,6 +345,8 @@ void FltkUi::state_load(Fl_Widget *w, void *userdata) {
     if (!jgm->is_loaded()) {
         return;
     }
+
+    run_emulation(false);
 
     Fl_Native_File_Chooser fc;
     fc.title("Load State");
@@ -303,6 +367,8 @@ void FltkUi::state_load(Fl_Widget *w, void *userdata) {
             }
             break;
     }
+
+    run_emulation();
 }
 
 void FltkUi::state_save(Fl_Widget *w, void *data) {
@@ -310,6 +376,8 @@ void FltkUi::state_save(Fl_Widget *w, void *data) {
     if (!jgm->is_loaded()) {
         return;
     }
+
+    run_emulation(false);
 
     Fl_Native_File_Chooser fc;
     fc.title("Save State");
@@ -319,11 +387,13 @@ void FltkUi::state_save(Fl_Widget *w, void *data) {
 
     // Show file chooser
     if (fc.show()) {
+        run_emulation();
         return;
     }
 
     std::string statefile{fc.filename()};
     jgm->state_save(statefile);
+    run_emulation();
 }
 
 void FltkUi::palette_open(Fl_Widget *w, void *data) {
@@ -450,6 +520,7 @@ void FltkUi::fds_insert(Fl_Widget *w, void *data) {
 void FltkUi::about_close(Fl_Widget *w, void *data) {
     Fl_Window *about = (Fl_Window*)data;
     about->hide();
+    run_emulation();
 }
 
 void FltkUi::about(Fl_Widget *w, void *data) {
@@ -493,6 +564,7 @@ void FltkUi::about(Fl_Widget *w, void *data) {
     close.callback(FltkUi::about_close, (void*)&about);
 
     about.set_modal();
+    run_emulation(false);
     about.show();
     while (about.shown()) {
         Fl::wait();
@@ -579,6 +651,9 @@ int NstGlArea::handle(int e) {
                 jgm->setup_video();
                 inputmgr->reassign();
                 audiomgr->unpause();
+                // Restart if in timer sync mode
+                FltkUi::run_emulation(false);
+                FltkUi::run_emulation();
             }
             return 1;
         }
@@ -590,7 +665,13 @@ int NstGlArea::handle(int e) {
 void FltkUi::enable_menu() {
     Fl_Menu_Item *mtable = (Fl_Menu_Item*)menubar->menu();
     for (int i = 0; i < mtable[0].size(); ++i) {
-        mtable[i].activate();
+        if (!fdsgame && mtable[i].label() &&
+            std::string(mtable[i].label()).find("Disk") != std::string::npos) {
+            mtable[i].deactivate();
+        }
+        else {
+            mtable[i].activate();
+        }
     }
     #ifdef __APPLE__
     menubar->update();
@@ -601,7 +682,7 @@ void FltkUi::show_inputmsg(int show) {
     setwin->show_inputmsg(show);
 }
 
-void FltkUi::nstwin_open(const char *name) {
+void FltkUi::nstwin_open() {
     int rw, rh;
     videomgr->set_dimensions();
     videomgr->get_dimensions(&rw, &rh);
@@ -614,17 +695,19 @@ void FltkUi::nstwin_open(const char *name) {
 
     // Settings Window
     setwin = new NstSettingsWindow(500, 550, "Settings", *jgm, *setmgr, *inputmgr);
+    setwin->set_crt_active(setmgr->get_setting("v_postproc")->val == 3);
 
     // Main Window
-    nstwin = new NstWindow(rw, rh + UI_MBARHEIGHT, name);
+    nstwin = new NstWindow(rw, rh + UI_MBARHEIGHT);
     nstwin->color(FL_BLACK);
     nstwin->xclass("nestopia");
 
     #ifdef __APPLE__
     // Apple style menu bar (top of screen)
     menubar = new Fl_Sys_Menu_Bar(0, 0, nstwin->w(), UI_MBARHEIGHT);
-    // Set the "About" callback
+    // Set the "About" callback and "Window" menu style
     Fl_Sys_Menu_Bar::about(about, nullptr);
+    Fl_Sys_Menu_Bar::window_menu_style(Fl_Sys_Menu_Bar::tabbing_mode_none);
     #else
     // Normal menu bar and window icon
     menubar = new Fl_Menu_Bar(0, 0, nstwin->w(), UI_MBARHEIGHT);
@@ -668,6 +751,25 @@ void FltkUi::set_ffspeed(bool on) {
     audiomgr->set_speed(speed);
 }
 
+void FltkUi::run_emulation(bool run) {
+    if (run) {
+        if (syncmode) {
+            Fl::add_timeout(0.001, exec_emu_timer);
+        }
+        else {
+            Fl::add_idle(exec_emu_vsync);
+        }
+    }
+    else {
+        if (syncmode) {
+            Fl::remove_timeout(exec_emu_timer);
+        }
+        else {
+            Fl::remove_idle(exec_emu_vsync);
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     // Parse command line arguments
     std::string filename{};
@@ -686,6 +788,9 @@ int main(int argc, char *argv[]) {
     setmgr = new SettingManager();
 
     // Initialize SDL Audio and Joystick
+    #ifdef _WIN32
+    putenv("SDL_AUDIODRIVER=directsound");
+    #endif
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
         LogDriver::log(LogLevel::Error, "Failed to initialize SDL: " + std::string(SDL_GetError()));
         return 1;
@@ -718,7 +823,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    FltkUi::nstwin_open(argv[0]);
+    FltkUi::nstwin_open();
     screennum = Fl::screen_num(nstwin->x_root(), nstwin->y_root());
 
     if (jgm->is_loaded()) {
@@ -727,6 +832,9 @@ int main(int argc, char *argv[]) {
     }
     else {
         nstwin->label("Nestopia UE");
+        if (!filename.empty()) {
+            LogDriver::log(LogLevel::OSD, "Failed to load file from CLI");
+        }
     }
 
     nstwin->show();
@@ -738,45 +846,21 @@ int main(int argc, char *argv[]) {
     videomgr->set_dpiscale(glarea->pixels_per_unit());
     videomgr->resize(glarea->w(), glarea->h());
 
-    Fl::check();
-
     if (video_fullscreen) {
         video_fullscreen = 0;
         FltkUi::fullscreen(NULL, NULL);
     }
 
-    int frames = 0;
-    int framefrags = 0;
-    int fps = jgm->get_frametime();
+    syncmode = setmgr->get_setting("m_syncmode")->val;
+    LogDriver::log(LogLevel::Debug, syncmode ?
+                   "Synchronization Mode: Timer" :
+                   "Synchronization Mode: VSync");
+
     update_refreshrate();
 
-    while (true) {
-        Fl::check();
-        if (!nstwin->shown()) {
-            break;
-        }
-
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            inputmgr->event(event);
-        }
-
-        fps = jgm->get_frametime();
-        frames = (fps / refreshrate);
-        framefrags += fps % refreshrate;
-
-        if (framefrags >= refreshrate) {
-            frames++;
-            framefrags -= refreshrate;
-        }
-
-        if (!paused) {
-            for (int i = 0; i < frames * speed; i++) {
-                jgm->exec_frame();
-            }
-        }
-
-        glarea->redraw();
+    FltkUi::run_emulation();
+    while (nstwin->shown()) {
+        Fl::wait();
     }
 
     // Write frontend and emulator settings

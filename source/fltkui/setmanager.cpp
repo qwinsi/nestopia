@@ -37,7 +37,7 @@
 namespace {
 
 jg_setting_t fe_settings[] = {
-    { "v_renderer", "Video Renderer",
+    { "v_renderer", "Video Renderer (Restart)",
       "0 = Modern, 1 = Legacy",
       "Use Modern (Core Profile, GLES) or Legacy (Compatibility Profile) OpenGL. "
       "Use Modern unless you are on extremely weak or incapable hardware.",
@@ -82,6 +82,11 @@ jg_setting_t fe_settings[] = {
       "0 = Disabled, 1 = Enabled",
       "Hide the crosshair when a Zapper is present",
       0, 0, 1, FLAG_FRONTEND
+    },
+    { "m_syncmode", "Synchronization Mode (Restart)",
+      "0 = VSync, 1 = Timer",
+      "Set the Synchronization Mode: VSync to sync to VBLANK, Timer in cases where VSync is unreliable",
+      0, 0, 1, FLAG_FRONTEND | JG_SETTING_RESTART
     },
     { "s_crtmasktype", "CRT Mask Type",
       "0 = No Mask, 1 = Aperture Grille Lite, 2 = Aperture Grille, "

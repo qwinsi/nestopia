@@ -68,6 +68,7 @@ constexpr size_t MAXPORTS = 4;
 SDL_Joystick *joystick[MAXPORTS];
 int jsports[MAXPORTS];
 int jsiid[MAXPORTS];
+int jstrig[MAXPORTS]{{0}};
 
 bool conflict{false};
 
@@ -351,6 +352,11 @@ void InputManager::set_inputdef(SDL_Event& evt) {
             SDL_Joystick *js = SDL_JoystickFromInstanceID(evt.jhat.which);
             int port = SDL_JoystickGetPlayerIndex(js);
             int jaxis = evt.jaxis.axis * 2 + (evt.jaxis.value > 0 ? 1 : 0);
+
+            if (jstrig[port] & (1 << evt.jaxis.axis) && evt.jaxis.value < 0) {
+                break;
+            }
+
             if (abs(evt.jaxis.value) >= DEADZONE) {
                 if (jamap[(port * 100) + jaxis] == nullptr) {
                     std::string astr{"j" + std::to_string(port) + "a" + std::to_string(jaxis)};
@@ -392,6 +398,12 @@ void InputManager::event(SDL_Event& evt) {
                     jsports[i] = 1;
                     jsiid[i] = SDL_JoystickInstanceID(joystick[i]);
                     port = i;
+                    jstrig[i] = 0;
+                    for (int j = 0; j < SDL_JoystickNumAxes(joystick[i]); ++j) {
+                        if (SDL_JoystickGetAxis(joystick[i], j) <= -(DEADZONE)) {
+                            jstrig[i] |= 1 << j; // it's a trigger
+                        }
+                    }
                     break;
                 }
             }
@@ -408,7 +420,7 @@ void InputManager::event(SDL_Event& evt) {
                 if (jsiid[i] == id) {
                     jsports[i] = 0;
                     LogDriver::log(LogLevel::Info, std::string("Joystick ") +
-                                   std::to_string(i + 1) + "Disconnected (Instance ID: " +
+                                   std::to_string(i + 1) + " Disconnected (Instance ID: " +
                                    std::to_string(id) + ")");
                     SDL_JoystickClose(joystick[i]);
                     break;
@@ -483,6 +495,9 @@ void InputManager::event(SDL_Event& evt) {
 
 void InputManager::event(int key, bool pressed) {
     if (kbmap[key] != nullptr) {
+        if (*kbmap[key] && pressed) {
+            return;
+        }
         *kbmap[key] = pressed;
     }
 }
@@ -588,6 +603,8 @@ std::string InputManager::get_inputdef(std::string device, std::string def) {
 void InputManager::clear_inputdef() {
     setmgr.set_input(cfg_name, cfg_def, std::string{});
     setmgr.set_input(cfg_name + "j", cfg_def, std::string{});
+    remap_kb();
+    remap_js();
 }
 
 void InputManager::set_inputcfg(std::string name, std::string def, int defnum) {
